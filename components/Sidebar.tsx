@@ -8,6 +8,7 @@ import { AVAILABLE_VOICES, AVAILABLE_LANGUAGES } from '../lib/constants';
 import { useLiveAPIContext } from '../contexts/LiveAPIContext';
 import { useAuth } from '../lib/auth';
 import { useHistoryStore } from '../lib/history';
+import { jsPDF } from 'jspdf';
 
 export default function Sidebar() {
   const { isSidebarOpen, toggleSidebar } = useUI();
@@ -21,6 +22,16 @@ export default function Sidebar() {
 
   const handleSave = () => {
     toggleSidebar();
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.text('Translation History', 10, 10);
+    history.forEach((item, index) => {
+      doc.text(`${index + 1}. Source: ${item.sourceText}`, 10, 20 + index * 10);
+      doc.text(`   Translation: ${item.translatedText}`, 10, 25 + index * 10);
+    });
+    doc.save('history.pdf');
   };
 
   return (
@@ -96,14 +107,24 @@ export default function Sidebar() {
         <div className="sidebar-section history-section">
           <div className="sidebar-section-title-wrapper">
             <h4 className="sidebar-section-title">Translation History</h4>
-            <button
-              onClick={clearHistory}
-              className="clear-history-button"
-              disabled={history.length === 0}
-              aria-label="Clear translation history"
-            >
-              <span className="icon">delete_sweep</span> Clear
-            </button>
+            <div className="sidebar-buttons">
+              <button
+                onClick={clearHistory}
+                className="clear-history-button"
+                disabled={history.length === 0}
+                aria-label="Clear translation history"
+              >
+                <span className="icon">delete_sweep</span> Clear
+              </button>
+              <button
+                onClick={exportToPDF}
+                className="export-pdf-button"
+                disabled={history.length === 0}
+                aria-label="Export history to PDF"
+              >
+                <span className="icon">picture_as_pdf</span> Export PDF
+              </button>
+            </div>
           </div>
           <div className="history-list">
             {history.length > 0 ? (

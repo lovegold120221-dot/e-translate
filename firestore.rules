@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Hardened Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Translations
+    match /translations/{translationId} {
+      function isValidTranslation(data) {
+        return data.userId is string &&
+               data.userId.size() > 0 &&
+               data.role is string && (data.role == 'user' || data.role == 'agent') &&
+               data.text is string &&
+               data.text.size() > 0 &&
+               data.createdAt is timestamp;
+      }
+
+      allow create: if isSignedIn() && 
+                      isValidId(translationId) && 
+                      isValidTranslation(request.resource.data) &&
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.createdAt == request.time;
+      
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Update/Delete are not allowed
+      allow update, delete: if false;
+    }
+  }
+}

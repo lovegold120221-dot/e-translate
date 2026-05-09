@@ -1,0 +1,22 @@
+{
+  "entities": {
+    "Translation": {
+      "title": "Translation",
+      "description": "Historical translation logs",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "role", "text", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/translations/{translationId}": {
+      "schema": "Translation",
+      "description": "Stores individual translation log entries"
+    }
+  }
+}
