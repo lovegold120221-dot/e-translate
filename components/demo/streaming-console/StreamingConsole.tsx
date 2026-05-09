@@ -18,13 +18,28 @@ import { useHistoryStore } from '../../../lib/history';
 import { useAuth, updateUserConversations } from '../../../lib/auth';
 
 export default function StreamingConsole() {
-  const { client, setConfig } = useLiveAPIContext();
+  const { client, setConfig, connected, connect, disconnect } = useLiveAPIContext();
   const { systemPrompt, voice, language1, language2 } = useSettings();
   const { addHistoryItem } = useHistoryStore();
   const { user } = useAuth();
 
   const turns = useLogStore(state => state.turns);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const isAutoDetect = language2 === 'Auto-Detect';
+  const prevAutoDetect = useRef(isAutoDetect);
+
+  useEffect(() => {
+    if (prevAutoDetect.current && !isAutoDetect && connected) {
+      // It transitioned from auto-detect to a specific language.
+      // Disconnect and reconnect to apply the new system prompt in a fresh session.
+      disconnect();
+      setTimeout(() => {
+        connect().catch(console.error);
+      }, 1000); // Wait for disconnect to complete and state to settle
+    }
+    prevAutoDetect.current = isAutoDetect;
+  }, [isAutoDetect, connected, disconnect, connect]);
 
   // Set the configuration for the Live API
   useEffect(() => {
@@ -49,7 +64,7 @@ export default function StreamingConsole() {
             text: isAutoDetect 
               ? `You are an expert language translator. The primary language is ${language1}.
 For this first interaction, you MUST determine what the secondary language is based on the user's spoken input.
-If the input is spoken in ${language1}, translate it to English.
+If the input is spoken in ${language1}, translate it to English and MUST immediately call the set_detected_language tool with "English".
 If the input is spoken in another language, translate it to ${language1}, and you MUST immediately call the set_detected_language tool with that language.
 DO NOT use conversational filler. RETURN ONLY THE TRANSLATED TEXT.`
               : systemPrompt,
